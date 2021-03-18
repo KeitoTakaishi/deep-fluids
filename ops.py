@@ -66,10 +66,10 @@ def inst_norm(x, train, data_format='NHWC', name=None, affine=False, act=lrelu, 
 def resize_nearest_neighbor(x, new_size, data_format='NHWC'):
     if data_format == 'NCHW':
         x = nchw_to_nhwc(x)
-        x = tf.image.resize_nearest_neighbor(x, new_size)
+        x = tf.compat.v1.image.resize_nearest_neighbor(x, new_size)
         x = nhwc_to_nchw(x)
     else:
-        x = tf.image.resize_nearest_neighbor(x, new_size)
+        x = tf.compat.v1.image.resize_nearest_neighbor(x, new_size)
     return x
 
 def upscale(x, scale, data_format='NHWC'):
@@ -82,12 +82,12 @@ def upscale3(x, scale):
     hw = tf.reshape(tf.transpose(x, [0,2,3,1,4]), [b,h,w,d*c])
     h *= scale
     w *= scale
-    hw = tf.image.resize_nearest_neighbor(hw, (h,w))
+    hw = tf.compat.v1.image.resize_nearest_neighbor(hw, (h,w))
     hw = tf.reshape(hw, [b,h,w,d,c])
 
     dh = tf.reshape(tf.transpose(hw, [0,3,1,2,4]), [b,d,h,w*c])
     d *= scale    
-    dh = tf.image.resize_nearest_neighbor(dh, (d,h))
+    dh = tf.compat.v1.image.resize_nearest_neighbor(dh, (d,h))
     return tf.reshape(dh, [b,d,h,w,c])
 
 def var_on_cpu(name, shape, initializer, dtype=tf.float32):

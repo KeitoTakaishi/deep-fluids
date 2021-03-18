@@ -78,9 +78,16 @@ class BatchManager(object):
         else:
             min_after_dequeue = 5000
         capacity = min_after_dequeue + 3 * self.batch_size
-        self.q = tf.FIFOQueue(capacity, [tf.float32, tf.float32], [feature_dim, label_dim])
-        self.x = tf.placeholder(dtype=tf.float32, shape=feature_dim)
-        self.y = tf.placeholder(dtype=tf.float32, shape=label_dim)
+        #self.q = tf.FIFOQueue(capacity, [tf.float32, tf.float32], [feature_dim, label_dim])
+        self.q = tf.queue.FIFOQueue(capacity, [tf.float32, tf.float32], [feature_dim, label_dim])
+        
+        #self.x = tf.placeholder(dtype=tf.float32, shape=feature_dim)
+        self.x = tf.compat.v1.placeholder(dtype=tf.float32, shape=feature_dim)
+
+        #self.y = tf.placeholder(dtype=tf.float32, shape=label_dim)
+        self.y = tf.compat.v1.placeholder(dtype=tf.float32, shape=label_dim)
+        
+        
         self.enqueue = self.q.enqueue([self.x, self.y])
         self.num_threads = np.amin([config.num_worker, multiprocessing.cpu_count(), self.batch_size])
 
@@ -160,7 +167,8 @@ class BatchManager(object):
 
     def stop_thread(self):
         # dirty way to bypass graph finilization error
-        g = tf.get_default_graph()
+        #g = tf.get_default_graph()
+        g = tf.compat.v1.get_default_graph()
         g._finalized = False
 
         self.coord.request_stop()

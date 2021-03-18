@@ -71,7 +71,9 @@ class Trainer(object):
             lr_min = config.lr_min
             lr_max = config.lr_max
             self.g_lr = tf.Variable(lr_max, name='g_lr')
-            self.g_lr_update = tf.assign(self.g_lr, 
+            #self.g_lr_update = tf.assign(self.g_lr, 
+            #   lr_min+0.5*(lr_max-lr_min)*(tf.cos(tf.cast(self.step, tf.float32)*np.pi/self.max_step)+1), name='g_lr_update')
+            self.g_lr_update = tf.compat.v1.assign(self.g_lr, 
                lr_min+0.5*(lr_max-lr_min)*(tf.cos(tf.cast(self.step, tf.float32)*np.pi/self.max_step)+1), name='g_lr_update')
         elif self.lr_update == 'step':
             self.g_lr = tf.Variable(config.lr_max, name='g_lr')
@@ -104,8 +106,8 @@ class Trainer(object):
         else:
             self.build_model()
 
-        self.saver = tf.train.Saver(max_to_keep=1000)
-        self.summary_writer = tf.summary.FileWriter(self.model_dir)
+        self.saver = tf.compat.v1.train.Saver(max_to_keep=1000)
+        self.summary_writer = tf.compat.v1.summary.FileWriter(self.model_dir)
 
         sv = tf.train.Supervisor(logdir=self.model_dir,
                                 is_chief=True,
@@ -116,8 +118,8 @@ class Trainer(object):
                                 global_step=self.step,
                                 ready_for_local_init_op=None)
 
-        gpu_options = tf.GPUOptions(allow_growth=True)
-        sess_config = tf.ConfigProto(allow_soft_placement=True,
+        gpu_options = tf.compat.v1.GPUOptions(allow_growth=True)
+        sess_config = tf.compat.v1.ConfigProto(allow_soft_placement=True,
                                     gpu_options=gpu_options)
 
         self.sess = sv.prepare_or_wait_for_session(config=sess_config)
@@ -130,7 +132,7 @@ class Trainer(object):
             self.batch_manager.start_thread(self.sess)
 
         # dirty way to bypass graph finilization error
-        g = tf.get_default_graph()
+        g = tf.compat.v1.get_default_graph()
         g._finalized = False
 
     def build_model(self):
@@ -158,7 +160,8 @@ class Trainer(object):
         show_all_variables()
 
         if self.optimizer == 'adam':
-            optimizer = tf.train.AdamOptimizer
+            #optimizer = tf.train.AdamOptimizer
+            optimizer = tf.compat.v1.train.AdamOptimizer
             g_optimizer = optimizer(self.g_lr, beta1=self.beta1, beta2=self.beta2)
         elif self.optimizer == 'gd':
             optimizer = tf.train.GradientDescentOptimizer
@@ -182,44 +185,69 @@ class Trainer(object):
             self.d_optim = g_optimizer.minimize(self.d_loss, var_list=self.D_var)
 
         self.g_optim = g_optimizer.minimize(self.g_loss, global_step=self.step, var_list=self.G_var)
-        self.epoch = tf.placeholder(tf.float32)
-
+        self.g_optim = g_optimizer.minimize(self.g_loss, global_step=self.step, var_list=self.G_var)
+        #self.epoch = tf.placeholder(tf.float32)
+        self.epoch = tf.compat.v1.placeholder(tf.float32)
         # summary
         summary = [
-            tf.summary.image("x/G", self.G[:,::-1]),
-            tf.summary.image("x/G_vort", self.G_vort[:,::-1]),
+            #tf.summary.image("x/G", self.G[:,::-1]),
+            #tf.summary.image("x/G_vort", self.G_vort[:,::-1]),
+
+            tf.compat.v1.summary.image("x/G", self.G[:,::-1]),
+            tf.compat.v1.summary.image("x/G_vort", self.G_vort[:,::-1]),
+
             
-            tf.summary.scalar("loss/g_loss", self.g_loss),
-            tf.summary.scalar("loss/g_loss_l1", self.g_loss_l1),
-            tf.summary.scalar("loss/g_loss_j_l1", self.g_loss_j_l1),
+            #tf.summary.scalar("loss/g_loss", self.g_loss),
+            #tf.summary.scalar("loss/g_loss_l1", self.g_loss_l1),
+            #tf.summary.scalar("loss/g_loss_j_l1", self.g_loss_j_l1),
+            tf.compat.v1.summary.scalar("loss/g_loss", self.g_loss),
+            tf.compat.v1.summary.scalar("loss/g_loss_l1", self.g_loss_l1),
+            tf.compat.v1.summary.scalar("loss/g_loss_j_l1", self.g_loss_j_l1),
+            
 
-            tf.summary.scalar("misc/epoch", self.epoch),
-            tf.summary.scalar('misc/q', self.batch_manager.q.size()),
+            #tf.summary.scalar("misc/epoch", self.epoch),
+            #tf.summary.scalar('misc/q', self.batch_manager.q.size()),
+            tf.compat.v1.summary.scalar("misc/epoch", self.epoch),
+            tf.compat.v1.summary.scalar('misc/q', self.batch_manager.q.size()),
+            
 
-            tf.summary.histogram("y", self.y),
 
-            tf.summary.scalar("misc/g_lr", self.g_lr),
+            #tf.summary.histogram("y", self.y),
+            tf.compat.v1.summary.histogram("y", self.y),
+
+            #tf.summary.scalar("misc/g_lr", self.g_lr),
+            tf.compat.v1.summary.scalar("misc/g_lr", self.g_lr),
         ]
 
         if self.use_c:
             summary += [
-                tf.summary.image("G_s", self.G_s[:,::-1]),
+                #tf.summary.image("G_s", self.G_s[:,::-1]),
+                 tf.compat.v1.summary.image("G_s", self.G_s[:,::-1]),
             ]
 
         if 'dg' in self.arch:
             summary += [
-                tf.summary.scalar("loss/g_loss_real", tf.sqrt(self.g_loss_real)),
-                tf.summary.scalar("loss/d_loss_real", tf.sqrt(self.d_loss_real)),
-                tf.summary.scalar("loss/d_loss_fake", tf.sqrt(self.d_loss_fake)),
+                #tf.summary.scalar("loss/g_loss_real", tf.sqrt(self.g_loss_real)),
+                #tf.summary.scalar("loss/d_loss_real", tf.sqrt(self.d_loss_real)),
+                #tf.summary.scalar("loss/d_loss_fake", tf.sqrt(self.d_loss_fake)),
+                tf.compat.v1.summary.scalar("loss/g_loss_real", tf.sqrt(self.g_loss_real)),
+                tf.compat.v1.summary.scalar("loss/d_loss_real", tf.sqrt(self.d_loss_real)),
+                tf.compat.v1.summary.scalar("loss/d_loss_fake", tf.sqrt(self.d_loss_fake)),
+                 
             ]
 
-        self.summary_op = tf.summary.merge(summary)
+        #self.summary_op = tf.summary.merge(summary)
+        self.summary_op = tf.compat.v1.summary.merge(summary)
         
         summary = [
-            tf.summary.image("x/x", denorm_img(self.x)[:,::-1]),
-            tf.summary.image("x/vort", denorm_img(self.x_vort)[:,::-1]),
+            #tf.summary.image("x/x", denorm_img(self.x)[:,::-1]),
+            #tf.summary.image("x/vort", denorm_img(self.x_vort)[:,::-1]),
+            tf.compat.v1.summary.image("x/x", denorm_img(self.x)[:,::-1]),
+            tf.compat.v1.summary.image("x/vort", denorm_img(self.x_vort)[:,::-1]),
         ]
-        self.summary_once = tf.summary.merge(summary) # call just once
+        
+        #self.summary_once = tf.summary.merge(summary) # call just once
+        self.summary_once = tf.compat.v1.summary.merge(summary) # call just once
 
     def train(self):
         if 'ae' in self.arch:
@@ -241,6 +269,17 @@ class Trainer(object):
             zi[:,i] = z_varying
             z_samples.append(zi)
 
+        print("------------------------------------------------------------------")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                       test1 is done                            |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("------------------------------------------------------------------")
+
+
         # test2: compare to gt
         x, pi, zi_ = self.batch_manager.random_list(self.b_num)
         x_w = self.get_vort_image(x/127.5-1)
@@ -256,18 +295,41 @@ class Trainer(object):
             zi[i,:] = z_gt
         z_samples.append(zi)
 
+
+        print("------------------------------------------------------------------")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                       test2 is done                            |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("------------------------------------------------------------------")
+
         # call once
         summary_once = self.sess.run(self.summary_once)
         self.summary_writer.add_summary(summary_once, 0)
         self.summary_writer.flush()
+
+
+        print("------------------------------------------------------------------")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                       call once is done                        |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("------------------------------------------------------------------")
         
         # train
         for step in trange(self.start_step, self.max_step):
+            print("[Train Loop]")   
             if 'dg' in self.arch:
                 self.sess.run([self.g_optim, self.d_optim])
             else:
                 self.sess.run(self.g_optim)
-
+            print("[Session Run]")
             if step % self.log_step == 0 or step == self.max_step-1:
                 ep = step*self.batch_manager.epochs_per_step
                 loss, summary = self.sess.run([self.g_loss,self.summary_op],
@@ -277,15 +339,28 @@ class Trainer(object):
 
                 self.summary_writer.add_summary(summary, global_step=step)
                 self.summary_writer.flush()
-
+            print("[summary write]")
             if step % self.test_step == 0 or step == self.max_step-1:
                 self.generate(z_samples, self.model_dir, idx=step)
-
+            print("[summary write]")
             if self.lr_update == 'step':
                 if step % self.lr_update_step == self.lr_update_step - 1:
                     self.sess.run(self.g_lr_update)
             else:
                 self.sess.run(self.g_lr_update)
+            print("[g_lr_update]")
+
+        print("------------------------------------------------------------------")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                      train loop is done                        |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("|                                                                |")
+        print("------------------------------------------------------------------")
+
+
 
         # save last checkpoint..
         save_path = os.path.join(self.model_dir, 'model.ckpt')

@@ -4,7 +4,7 @@ from ops import *
 
 def GeneratorBE(z, filters, output_shape, name='G',
                 num_conv=4, conv_k=3, last_k=3, repeat=0, skip_concat=False, act=lrelu, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         if repeat == 0:
             repeat_num = int(np.log2(np.max(output_shape[:-1]))) - 2
         else:
@@ -47,7 +47,7 @@ def GeneratorBE(z, filters, output_shape, name='G',
 
 def GeneratorBE3(z, filters, output_shape, name='G',
                 num_conv=4, conv_k=3, last_k=3, repeat=0, skip_concat=False, act=lrelu, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         if repeat == 0:
             repeat_num = int(np.log2(np.max(output_shape[:-1]))) - 2
         else:
@@ -87,7 +87,7 @@ def GeneratorBE3(z, filters, output_shape, name='G',
     return out, variables
 
 def DiscriminatorPatch(x, filters, name='D', train=True, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         repeat_num = 3 # if c4k3s2, rfs 95, w/16=8, if c3k3s2, rfs 47, w/8=16
         d = int(filters/2)
         for _ in range(repeat_num): 
@@ -103,7 +103,7 @@ def DiscriminatorPatch(x, filters, name='D', train=True, reuse=False):
     return out, variables
 
 def DiscriminatorPatch3(x, filters, name='D', train=True, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         repeat_num = 3 # if c4k3s2, rfs 95, w/16=8, if c3k3s2, rfs 47, w/8=16
         d = int(filters/2)
         for _ in range(repeat_num): 
@@ -116,7 +116,7 @@ def DiscriminatorPatch3(x, filters, name='D', train=True, reuse=False):
     return out, variables
 
 def EncoderBE(x, filters, z_num, name='enc', num_conv=4, conv_k=3, repeat=0, act=lrelu, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         x_shape = get_conv_shape(x)[1:]
         if repeat == 0:
             repeat_num = int(np.log2(np.max(x_shape[:-1]))) - 2
@@ -152,7 +152,7 @@ def EncoderBE(x, filters, z_num, name='enc', num_conv=4, conv_k=3, repeat=0, act
     return out, variables
 
 def EncoderBE3(x, filters, z_num, name='enc', num_conv=3, conv_k=3, repeat=0, act=lrelu, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         x_shape = get_conv_shape(x)[1:]
         if repeat == 0:
             repeat_num = int(np.log2(np.max(x_shape[:-1]))) - 2
@@ -189,7 +189,7 @@ def EncoderBE3(x, filters, z_num, name='enc', num_conv=3, conv_k=3, repeat=0, ac
 
 def AE(x, filters, z_num, name='AE', num_conv=4, conv_k=3, last_k=3, repeat=0,
                     act=lrelu, skip_concat=False, use_sparse=False, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         z, _ = EncoderBE(x, filters, z_num, 'enc',
                          num_conv=num_conv-1, conv_k=conv_k, repeat=repeat,
                          act=act, reuse=reuse)
@@ -203,7 +203,7 @@ def AE(x, filters, z_num, name='AE', num_conv=4, conv_k=3, last_k=3, repeat=0,
 
 def AE3(x, filters, z_num, name='AE', num_conv=4, conv_k=3, last_k=3, repeat=0,
                     act=lrelu, skip_concat=False, use_sparse=False, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         z, _ = EncoderBE3(x, filters, z_num, 'enc',
                          num_conv=num_conv-1, conv_k=conv_k, repeat=repeat,
                          act=act, reuse=reuse)
@@ -216,7 +216,7 @@ def AE3(x, filters, z_num, name='AE', num_conv=4, conv_k=3, last_k=3, repeat=0,
     return out, z, variables
     
 def NN(x, filters, onum, name='NN', act=tf.nn.elu, dropout=0.1, train=True, reuse=False):
-    with tf.variable_scope(name, reuse=reuse) as vs:
+    with tf.compat.v1.variable_scope(name, reuse=reuse) as vs:
         x = slim.dropout(batch_norm(linear(x, filters*2), train, act=act), dropout, is_training=train)
         x = slim.dropout(batch_norm(linear(x, filters), train, act=act), dropout, is_training=train)
         out = linear(x, onum)
